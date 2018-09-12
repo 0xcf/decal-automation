@@ -1,0 +1,3 @@
+ConfigArgParse
+google-api-python-client
+PyMySQL
