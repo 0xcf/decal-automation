@@ -4,7 +4,7 @@ import io
 from google.oauth2 import service_account
 import googleapiclient.discovery
 
-from config import config
+from decal.config import config
 
 SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
 

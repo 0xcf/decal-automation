@@ -2,7 +2,7 @@ from collections import namedtuple
 
 import pymysql
 
-from config import config
+from decal.config import config
 
 Checkoff = namedtuple('Checkoff', ['id', 'facilitator', 'lab', 'student', 'timestamp'])
 Facilitator = namedtuple('Facilitator', ['id', 'name', 'username'])
