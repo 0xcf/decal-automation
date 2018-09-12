@@ -7,7 +7,7 @@ from decal.config import config
 Checkoff = namedtuple('Checkoff', ['id', 'facilitator', 'lab', 'student', 'timestamp'])
 Facilitator = namedtuple('Facilitator', ['id', 'name', 'username'])
 Lab = namedtuple('Lab', ['id', 'name', 'fullname', 'track', 'responses_gdoc'])
-Student = namedtuple('Student', ['id', 'email', 'name', 'track', 'username'])
+Student = namedtuple('Student', ['id', 'email', 'track', 'username'])
 
 db = pymysql.connect(
     user=config.db_user,
@@ -31,7 +31,7 @@ def get_labs():
 
 def get_students():
     with db as c:
-        c.execute('SELECT students.id, students.email, students.name, students.track, students.username FROM students inner join semester on semester.name=%s where students.semester=semester.id', (config.semester))
+        c.execute('SELECT students.id, students.email, students.track, students.username FROM students inner join semester on semester.name=%s where students.semester=semester.id', (config.semester))
         return [Student(**l) for l in c]
 
 def get_facilitators():
