@@ -1,4 +1,5 @@
 import csv
+from datetime import datetime
 import io
 
 from google.oauth2 import service_account
@@ -31,4 +32,7 @@ def read_spreadsheet(spreadsheet_url):
 
     response_bytes = drive.files().export(fileId=fileid, mimeType='text/csv').execute()
     response_io = io.StringIO(response_bytes.decode())
-    return csv.DictReader(response_io)
+    return csv.reader(response_io)
+
+def parse_datetime(s):
+    return datetime.strptime(s, '%m/%d/%Y %H:%M:%S')

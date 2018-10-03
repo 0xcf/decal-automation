@@ -4,7 +4,7 @@ import pymysql
 
 from decal.config import config
 
-Checkoff = namedtuple('Checkoff', ['id', 'facilitator', 'lab', 'student', 'timestamp'])
+Checkoff = namedtuple('Checkoff', ['id', 'facilitator', 'lab', 'student', 'timestamp', 'correct', 'row_id'])
 Facilitator = namedtuple('Facilitator', ['id', 'name', 'username'])
 Lab = namedtuple('Lab', ['id', 'name', 'fullname', 'track', 'responses_gdoc'])
 Student = namedtuple('Student', ['id', 'email', 'track', 'username'])
@@ -20,8 +20,9 @@ db = pymysql.connect(
 )
 
 def get_checkoffs():
+    """Get the list of checkoffs that have been recorded in the database."""
     with db as c:
-        c.execute('SELECT checkoffs.id, checkoffs.facilitator, checkoffs.lab, checkoffs.student, checkoffs.timestamp FROM checkoffs inner join semester on semester.name=%s where checkoffs.semester=semester.id', (config.semester))
+        c.execute('SELECT checkoffs.id, checkoffs.facilitator, labs.name as lab, checkoffs.student, checkoffs.timestamp, checkoffs.correct, checkoffs.row_id FROM checkoffs inner join labs on labs.id=checkoffs.lab inner join semester on semester.name=%s where labs.semester=semester.id', (config.semester))
         return [Checkoff(**l) for l in c]
 
 def get_labs():
@@ -38,3 +39,25 @@ def get_facilitators():
     with db as c:
         c.execute('SELECT facilitator.id, facilitator.name, facilitator.username FROM facilitator')
         return [Facilitator(**l) for l in c]
+
+def get_attendance_sheet():
+    """Get the URL of the attendance sheet for the current semester."""
+    with db as c:
+        c.execute('SELECT attendance_sheet FROM semester WHERE name=%s', (config.semester,))
+        return c.fetchone()['attendance_sheet']
+
+def get_checkoffs_sheet():
+    """Get the URL of the checkoffs sheet for the current semester."""
+    with db as c:
+        c.execute('SELECT checkoffs_sheet FROM semester WHERE name=%s', (config.semester,))
+        return c.fetchone()['checkoffs_sheet']
+
+def insert_checkoff(timestamp, student, lab, facilitator, correct, row_id):
+    with db as c:
+        c.execute('INSERT INTO checkoffs (timestamp, student, facilitator, correct, row_id, lab) values (%s, %s, %s, %s, %s, (select labs.id from labs inner join semester on semester.name=%s where labs.semester=semester.id and labs.name=%s))',
+            (timestamp, student, facilitator, correct, row_id, config.semester, lab)
+        )
+
+def update_lab_gdoc(lab_dbid, gdoc_url):
+    with db as c:
+        c.execute('UPDATE labs SET responses_gdoc = %s where id=%s', (gdoc_url, lab_dbid))
