@@ -31,8 +31,9 @@ def get_checkoffs_sheet():
         for n, c in enumerate(checkoffs)
     ]
 
-def insert_into_db(checkoff):
+def insert_into_db(cursor, checkoff):
     db.insert_checkoff(
+        cursor,
         timestamp=checkoff.timestamp,
         student=checkoff.username,
         lab=checkoff.labid,

@@ -1,4 +1,5 @@
 from textwrap import dedent
+import traceback
 
 from ocflib.misc.mail import email_for_user
 from ocflib.misc.mail import send_mail
@@ -24,30 +25,41 @@ Hi {name},
 ''').strip()
 
 for co in checkoff.get_checkoffs_sheet():
-    if co.rowid in stored_rowids:
-        continue
+    try:
+        if co.rowid in stored_rowids:
+            continue
 
-    if co.correct:
-        sentence = 'Congratulations, you were checked off for lab {}.'
-    else:
-        sentence = 'Unfortunately you were not checked off for lab {}.'
+        if co.correct:
+            sentence = 'Congratulations, you were checked off for lab {}.'
+        else:
+            sentence = 'Unfortunately you were not checked off for lab {}.'
 
-    sentence = sentence.format(co.labid)
+        sentence = sentence.format(co.labid)
 
-    full_text = template.format(name=co.username, correct_sentence=sentence, facilitator=co.facilitator, feedback=co.feedback)
+        full_text = template.format(name=co.username, correct_sentence=sentence, facilitator=co.facilitator, feedback=co.feedback)
 
-    to_email = email_for_user(co.username)
+        to_email = email_for_user(co.username)
 
-    # send the email
-    send_mail(
-        to=to_email,
-        subject='[Decal] Feedback on lab {}'.format(co.labid),
-        body=full_text,
-        cc='decal+checkoffs@ocf.berkeley.edu',
-        sender='decal@ocf.berkeley.edu',
-    )
+        try:
+            cursor = db.get_cursor()
+            checkoff.insert_into_db(cursor, co)
+        except:
+            db.db.rollback()
+            db.db.close()
+            raise
+        else:
+            db.db.commit()
 
-    checkoff.insert_into_db(co)
+            # send the email
+            send_mail(
+                to=to_email,
+                subject='[Decal] Feedback on lab {}'.format(co.labid),
+                body=full_text,
+                cc='decal+checkoffs@ocf.berkeley.edu',
+                sender='decal@ocf.berkeley.edu',
+            )
 
-
-
+    except Exception as err:
+        # Subtract 1 from the rowid to cancel out the first header row. This will print the actual row when looking at the google doc
+        print('Error on row {} (facilitator: {})'.format(co.rowid - 1, co.facilitator))
+        traceback.print_tb(err.__traceback__)

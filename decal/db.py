@@ -19,6 +19,9 @@ db = pymysql.connect(
     autocommit=True,
 )
 
+def get_cursor():
+    return db.cursor()
+
 def get_checkoffs():
     """Get the list of checkoffs that have been recorded in the database."""
     with db as c:
@@ -52,11 +55,10 @@ def get_checkoffs_sheet():
         c.execute('SELECT checkoffs_sheet FROM semester WHERE name=%s', (config.semester,))
         return c.fetchone()['checkoffs_sheet']
 
-def insert_checkoff(timestamp, student, lab, facilitator, correct, row_id):
-    with db as c:
-        c.execute('INSERT INTO checkoffs (timestamp, student, facilitator, correct, row_id, lab) values (%s, %s, %s, %s, %s, (select labs.id from labs inner join semester on semester.name=%s where labs.semester=semester.id and labs.name=%s))',
-            (timestamp, student, facilitator, correct, row_id, config.semester, lab)
-        )
+def insert_checkoff(cursor, timestamp, student, lab, facilitator, correct, row_id):
+    cursor.execute('INSERT INTO checkoffs (timestamp, student, facilitator, correct, row_id, lab) values (%s, %s, %s, %s, %s, (select labs.id from labs inner join semester on semester.name=%s where labs.semester=semester.id and labs.name=%s))',
+        (timestamp, student, facilitator, correct, row_id, config.semester, lab)
+    )
 
 def update_lab_gdoc(lab_dbid, gdoc_url):
     with db as c:
