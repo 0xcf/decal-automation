@@ -63,3 +63,11 @@ def insert_checkoff(cursor, timestamp, student, lab, facilitator, correct, row_i
 def update_lab_gdoc(lab_dbid, gdoc_url):
     with db as c:
         c.execute('UPDATE labs SET responses_gdoc = %s where id=%s', (gdoc_url, lab_dbid))
+
+def facilitator_labs(labid):
+    """Get which facilitators are responsible for grading a lab."""
+    with db as c:
+        c.execute('SELECT facilitator.username from facilitator, facilitator_lab, labs inner join semester on semester.name=%s where labs.semester=semester.id and labs.name=%s and labs.id=facilitator_lab.lab and facilitator.id=facilitator_lab.facilitator',
+            (config.semester, labid)
+        )
+        return set(f['username'] for f in c)
