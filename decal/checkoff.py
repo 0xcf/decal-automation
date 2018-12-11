@@ -29,6 +29,7 @@ def get_checkoffs_sheet():
             feedback = c[5],
         )
         for n, c in enumerate(checkoffs)
+        if c[0]
     ]
 
 def insert_into_db(cursor, checkoff):

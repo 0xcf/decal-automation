@@ -1,6 +1,7 @@
 import csv
 from datetime import datetime
 import io
+from urllib import parse
 
 from google.oauth2 import service_account
 import googleapiclient.discovery
@@ -23,7 +24,10 @@ drive = googleapiclient.discovery.build(
 def url_to_fileid(url):
     """Converts a Google Spreadsheet URL to just its file ID"""
     if url.startswith('http://') or url.startswith('https://'):
-        return url.split('/')[5]
+        try:
+            return url.split('/')[5]
+        except IndexError:
+            return dict(parse.parse_qsl(parse.urlsplit(url).query))['id']
     else:
         return url
 
