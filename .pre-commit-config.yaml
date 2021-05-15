@@ -1,0 +1,10 @@
+repos:
+  - repo: https://github.com/0xcf/decal-automation
+    rev: d17f95e908217791de83a24fb19a9a6186303f0a
+    hooks:
+      - id: jupyter-nb-clear-output
+        name: jupyter-nb-clear-output
+        files: \.ipynb$
+        stages: [commit]
+        language: system
+        entry: (which jupyter && jupyter nbconvert --ClearOutputPreprocessor.enabled=True --inplace) || echo 'jupyter not installed, skipping pre-commit hook'
