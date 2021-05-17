@@ -1,0 +1,9 @@
+repos:
+  - repo: local
+    hooks:
+      - id: jupyter-nb-clear-output
+        name: jupyter-nb-clear-output
+        stages: [commit]
+        language: system
+        pass_filenames: false
+        entry: bash -c "(which jupyter && jupyter nbconvert --ClearOutputPreprocessor.enabled=True --inplace process_grades.ipynb) || echo 'jupyter not installed, skipping precommit hook'"
