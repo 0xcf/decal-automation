@@ -29,7 +29,7 @@ resource "libvirt_cloudinit_disk" "decalvm_init" {
   ethernets:
     ens3:
       addresses: [${local.ipv4_prefix}.${each.value.id}/24, ${local.ipv6_prefix}:${each.value.id}/64]
-      gateway4: 169.229.226.1
+      gateway4: ${local.ipv4_prefix}.1
       gateway6: 2607:f140:8801::1
       nameservers:
         search: [ocf.berkeley.edu]
@@ -42,7 +42,7 @@ resource "libvirt_volume" "decalvm_volume" {
   for_each = { for student in local.data : student.username => student }
 
   name             = "decalvm-${each.value.username}.img"
-  size             = 4000000000 # 4 GB in bytes
+  size             = 30000000000 # 30 GB in bytes
   pool             = "images"
   base_volume_id   = libvirt_volume.ubuntu_img.id
   base_volume_pool = libvirt_volume.ubuntu_img.pool
@@ -53,7 +53,7 @@ resource "libvirt_domain" "decalvm" {
   for_each = { for student in local.data : student.username => student }
 
   name   = "decalvm-${each.value.username}"
-  memory = "2048"
+  memory = "3072"
   vcpu   = 2
 
   cloudinit = libvirt_cloudinit_disk.decalvm_init[each.value.username].id
