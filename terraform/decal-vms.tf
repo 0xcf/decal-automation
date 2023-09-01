@@ -34,12 +34,11 @@ resource "libvirt_cloudinit_disk" "decalvm_init" {
   version: 2
   ethernets:
     ens3:
-      addresses: [${local.ipv4_prefix}.${each.value.id}/24, ${local.ipv6_prefix}:${each.value.id}/64]
-      gateway4: ${local.ipv4_prefix}.1
+      addresses: [${local.ipv6_prefix}:${each.value.id}/64]
       gateway6: 2607:f140:8801::1
       nameservers:
         search: [ocf.berkeley.edu]
-        addresses: [169.229.226.22, 8.8.8.8, 2607:f140:8801::1:22]
+        addresses: [2a01:4f8:c2c:123f::1, 2a00:1098:2b::1, 2a01:4f9:c010:3f02::1]
   EOT
   pool           = libvirt_pool.decalvm_pool.name
 }
@@ -61,7 +60,7 @@ resource "libvirt_domain" "decalvm" {
   name   = "decalvm-${each.value.username}"
   memory = "3072"
   vcpu   = 2
-  
+
   cpu {
     mode = "host-passthrough"
   }
@@ -113,21 +112,12 @@ resource "libvirt_domain" "decalvm" {
 
       # Populate the motd with data
       "sed -i 's/$HOSTNAME/${each.value.username}/g' /etc/motd",
-      "sed -i 's/$IP/${local.ipv4_prefix}.${each.value.id}/g' /etc/motd",
+      "sed -i 's/$IP/${local.ipv6_prefix}:${each.value.id}/g' /etc/motd",
 
       # Remove motd spam
       "apt purge --yes ubuntu-advantage-tools",
     ]
   }
-}
-
-resource "dnsimple_zone_record" "decalvm_arecord" {
-  for_each = { for student in local.data : student.username => student }
-
-  name      = "${each.value.username}.decal"
-  type      = "A"
-  value     = "${local.ipv4_prefix}.${each.value.id}"
-  zone_name = "xcf.sh"
 }
 
 resource "dnsimple_zone_record" "decalvm_aaaarecord" {
