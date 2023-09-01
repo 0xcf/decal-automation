@@ -18,3 +18,5 @@ To recreate the VM for user waddles:
 ```sh
 terraform apply -replace libvirt_domain.decalvm[\"waddles\"] -replace libvirt_volume.decalvm_volume[\"waddles\"]
 ```
+
+If you migrate the location of the storage pool, make sure it's added to apparmor in `/etc/apparmor.d/local/abstractions/libvirt-qemu` otherwise you'll get permissions errors.
