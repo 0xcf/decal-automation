@@ -10,10 +10,16 @@ locals {
   ipv6_prefix = "2607:f140:8801::2"
 }
 
+resource "libvirt_pool" "decalvm_pool" {
+  name = "decalvm"
+  type = "dir"
+  path = "/mnt/decalfs"
+}
+
 # We fetch the latest ubuntu release image from their mirrors
 resource "libvirt_volume" "ubuntu_img" {
   name   = "ubuntu-2204.img"
-  pool   = "images"
+  pool   = libvirt_pool.decalvm_pool.name
   source = "https://cloud-images.ubuntu.com/releases/jammy/release/ubuntu-22.04-server-cloudimg-amd64-disk-kvm.img"
   format = "qcow2"
 }
@@ -35,7 +41,7 @@ resource "libvirt_cloudinit_disk" "decalvm_init" {
         search: [ocf.berkeley.edu]
         addresses: [169.229.226.22, 8.8.8.8, 2607:f140:8801::1:22]
   EOT
-  pool           = "images"
+  pool           = libvirt_pool.decalvm_pool.name
 }
 
 resource "libvirt_volume" "decalvm_volume" {
@@ -43,7 +49,7 @@ resource "libvirt_volume" "decalvm_volume" {
 
   name             = "decalvm-${each.value.username}.img"
   size             = 32212254720 # 30 GB in bytes
-  pool             = "images"
+  pool             = libvirt_pool.decalvm_pool.name
   base_volume_id   = libvirt_volume.ubuntu_img.id
   base_volume_pool = libvirt_volume.ubuntu_img.pool
 }
