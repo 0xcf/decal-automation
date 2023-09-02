@@ -4,10 +4,14 @@ variable "data_file" {
 
 locals {
   # Import all decal student data
-  data        = csvdecode(file(var.data_file))
-  cloud_init  = file("${path.module}/cloud_init.cfg")
-  ipv4_prefix = "128.32.128"
-  ipv6_prefix = "2607:f140:8801::2"
+  data       = csvdecode(file(var.data_file))
+  cloud_init = "${path.module}/cloud_init.cfg"
+  decalvm_ip = {
+    for student in local.data : student.username => {
+      v4 = "128.32.128.${student.id}"
+      v6 = "2607:f140:8801::2:${student.id}"
+    }
+  }
 }
 
 resource "libvirt_pool" "decalvm_pool" {
@@ -29,12 +33,12 @@ resource "libvirt_cloudinit_disk" "decalvm_init" {
   for_each = { for student in local.data : student.username => student }
 
   name           = "decalvm-init-${each.value.username}.iso"
-  user_data      = local.cloud_init
+  user_data      = templatefile(local.cloud_init, { student = each.value, ip = local.decalvm_ip[each.value.username].v6 })
   network_config = <<-EOT
   version: 2
   ethernets:
     ens3:
-      addresses: [${local.ipv6_prefix}:${each.value.id}/64]
+      addresses: [${local.decalvm_ip[each.value.username].v6}/64]
       gateway6: 2607:f140:8801::1
       nameservers:
         search: [ocf.berkeley.edu]
@@ -89,35 +93,6 @@ resource "libvirt_domain" "decalvm" {
   disk {
     volume_id = libvirt_volume.decalvm_volume[each.value.username].id
   }
-
-  provisioner "remote-exec" {
-    connection {
-      type        = "ssh"
-      user        = "root"
-      private_key = file("../data/decal_root")
-      host        = "${local.ipv6_prefix}:${each.value.id}"
-    }
-    inline = [
-      # Set the hostname to be FQDN
-      "hostnamectl set-hostname ${each.value.username}.decal.xcf.sh",
-
-      # Add the user and give them root access
-      "useradd ${each.value.username} -s /bin/bash -m",
-      "echo ${each.value.username}:${each.value.password} | chpasswd",
-      "usermod -aG sudo ${each.value.username}",
-      "printf '${each.value.username} ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/decal",
-      "service sshd restart",
-      # Expire password so user is forced to change on first login
-      "passwd -e ${each.value.username}",
-
-      # Populate the motd with data
-      "sed -i 's/$HOSTNAME/${each.value.username}/g' /etc/motd",
-      "sed -i 's/$IP/${local.ipv6_prefix}:${each.value.id}/g' /etc/motd",
-
-      # Remove motd spam
-      "apt purge --yes ubuntu-advantage-tools",
-    ]
-  }
 }
 
 resource "dnsimple_zone_record" "decalvm_aaaarecord" {
@@ -125,6 +100,6 @@ resource "dnsimple_zone_record" "decalvm_aaaarecord" {
 
   name      = "${each.value.username}.decal"
   type      = "AAAA"
-  value     = "${local.ipv6_prefix}:${each.value.id}"
+  value     = local.decalvm_ip[each.value.username].v6
   zone_name = "xcf.sh"
 }
