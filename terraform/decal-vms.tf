@@ -42,7 +42,7 @@ resource "libvirt_cloudinit_disk" "decalvm_init" {
       gateway6: 2607:f140:8801::1
       nameservers:
         search: [ocf.berkeley.edu]
-        addresses: [2a01:4f8:c2c:123f::1, 2a00:1098:2b::1, 2a01:4f9:c010:3f02::1]
+        addresses: [2607:f140:8801::1:52]
   EOT
   pool           = libvirt_pool.decalvm_pool.name
 }
