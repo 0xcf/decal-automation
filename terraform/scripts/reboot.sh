@@ -1,1 +1,10 @@
-curl -X POST -H "Content-Type: application/json" -H "Authorization: Bearer <APIKEY>" -d '{"type":"reboot"}' "https://api.digitalocean.com/v2/droplets/$1/actions"
+#!/bin/bash
+set -euo pipefail
+
+if [ "$#" = 1 ]; then
+  username=$1
+  dir=$(dirname "$0")
+  ssh -i "$dir/../../data/decal_root" -o "StrictHostKeyChecking=no" "root@$username.decal.xcf.sh" "reboot now"
+else
+	echo "Usage: $0 <ocfusername>"
+fi

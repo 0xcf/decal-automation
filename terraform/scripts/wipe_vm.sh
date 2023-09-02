@@ -1,5 +1,9 @@
+#!/bin/bash
+set -euo pipefail
+
 if [ "$#" = 1 ]; then
-	terraform apply -replace "libvirt_domain.decalvm[\"$1\"]" -replace "libvirt_volume.decalvm_volume[\"$1\"]"
+	username=$1
+	terraform apply -replace "libvirt_domain.decalvm[\"$username\"]" -replace "libvirt_volume.decalvm_volume[\"$username\"]"
 else
-	echo "Usage: wipe_vm.sh <ocfusername>"
+	echo "Usage: $0 <ocfusername>"
 fi

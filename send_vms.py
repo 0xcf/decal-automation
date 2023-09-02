@@ -5,7 +5,7 @@ from textwrap import dedent
 from ocflib.misc.mail import send_mail
 
 def send(email, username, hostname, password):
-    print(email)    
+    print(email)
     message = dedent("""
         Hi {username},
 
@@ -15,11 +15,11 @@ def send(email, username, hostname, password):
         Username: {username}
         Temporary Password: {password}
 
-        You can login to this machine with `ssh {username}@{hostname}`, after which you’ll be prompted to enter your password. You should see a prompt to change your temporary password after your first login. We recommend selecting a strong password to secure your VM appropriately. 
-        
-        These VMs were graciously provided for the DeCal by DigitalOcean.
+        If you're not on eduroam you'll need to use the Berkeley VPN to connect to your VM: https://security.berkeley.edu/services/bsecure/bsecure-remote-access-vpn
 
-        Let us know if you have any questions or issues,
+        You can login to this machine with `ssh {username}@{hostname}`, after which you’ll be prompted to enter your password. You should see a prompt to change your temporary password after your first login. We recommend selecting a strong password to secure your VM appropriately.
+
+        If you have any questions or issues logging in (notably permission denied: publickey or port 22: connection refused), please make a private post on Ed with your OCF username.
 
         Linux SysAdmin DeCal Staff
         """).strip()
@@ -46,6 +46,8 @@ def mass_send(filename):
             lc += 1
 
         print("Processed {lc} lines".format(lc=lc))
-   
-print("Reading from file {filename}".format(filename=sys.argv[1]))
-mass_send(sys.argv[1])
+
+filename = './data/students.csv'
+
+print("Reading from file {filename}".format(filename=filename))
+mass_send(filename)
