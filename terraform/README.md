@@ -15,6 +15,8 @@ Then hit the apply:
 terraform apply
 ```
 
+If you get an error about not finding a cloud-init iso, this is because of a bug in the libvirt provider. Just run `terraform apply` again and it'll figure itself out. (https://github.com/dmacvicar/terraform-provider-libvirt/issues/973)
+
 To recreate the VM for user waddles:
 ```sh
 terraform apply -replace libvirt_domain.decalvm[\"waddles\"] -replace libvirt_volume.decalvm_volume[\"waddles\"]
