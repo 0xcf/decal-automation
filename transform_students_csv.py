@@ -3,7 +3,9 @@
 infile = './data/students.in.csv'
 outfile = './data/students.csv'
 
-import csv, secrets, subprocess
+import csv, secrets, string, subprocess
+
+alphabet = string.ascii_letters + string.digits
 
 with open(outfile) as csv_outfile:
     outfile_linecount = sum(1 for _ in csv_outfile)
@@ -20,7 +22,7 @@ with open(infile) as csv_infile:
         csv_writer.writeheader()
         i = 0
         for row in csv_reader:
-            password = secrets.token_urlsafe(8)
+            password = ''.join(secrets.choice(alphabet) for _ in range(8))
             try:
                 hashed_password = subprocess.run(
                     ['mkpasswd', '-m', 'sha-512', '-R', '4096', password],
@@ -34,8 +36,8 @@ with open(infile) as csv_infile:
                 exit(1)
             student = {
                 'id': i + 2, # ids are how we derive IPs and they must start at 2
-                'username': row['username'],
-                'email': row['email'],
+                'username': row['username'].strip(),
+                'email': row['email'].strip(),
                 'password': password,
                 'hashed_password': hashed_password
             }
