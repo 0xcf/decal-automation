@@ -1,89 +1,105 @@
-variable "data_file" {}
-variable "pvt_key_file" {}
-variable "pub_key_file" {}
-variable "ssh_fingerprint" {}
-
+variable "data_file" {
+  default = "./data_test.csv"
+}
 
 locals {
-    # Import all decal student data
-    data = csvdecode(file("${var.data_file}"))
-}
-
-
-resource "digitalocean_ssh_key" "decal_key" {
-    name    = "decal-key"
-    public_key = "${file("${var.pub_key_file}")}"
-}
-
-resource "digitalocean_droplet" "decal_vms" {
-    depends_on = [digitalocean_ssh_key.decal_key]
-
-    for_each = { for inst in local.data : inst.username => inst }
-    image = "ubuntu-18-04-x64"
-    name = "${each.value.username}.decal.xcf.sh"
-    region = "sfo2"
-    size = "s-1vcpu-1gb"
-    private_networking = false
-    ssh_keys = [
-      "${var.ssh_fingerprint}"
-    ]
-
-    provisioner "file" {
-        connection {
-            type     = "ssh"
-            user     = "root"
-            private_key = "${file("${var.pvt_key_file}")}"
-            host    = self.ipv4_address
-        }
-        source      = "sshd_config"
-        destination = "/etc/ssh/sshd_config"
+  # Import all decal student data
+  data       = csvdecode(file(var.data_file))
+  cloud_init = "${path.module}/cloud_init.cfg"
+  decalvm_ip = {
+    for student in local.data : student.username => {
+      v4 = "128.32.128.${student.id}"
+      v6 = "2607:f140:8801::2:${student.id}"
     }
-
-    # Set the motd         
-    provisioner "file" {
-        connection {
-            type     = "ssh"
-            user     = "root"
-            private_key = "${file("${var.pvt_key_file}")}"
-            host    = self.ipv4_address
-        }
-        source      = "motd"
-        destination = "/etc/motd"
-    }
-
-    provisioner "remote-exec" {
-        connection {
-            type     = "ssh"
-            user     = "root"
-            private_key = "${file("${var.pvt_key_file}")}"
-            host    = self.ipv4_address
-        }
-        inline = [
-        # Set the hostname to be FQDN
-        "sudo hostname ${each.value.username}.decal.xcf.sh",
-
-        # Add the user and give them root access
-        "sudo useradd ${each.value.username} -s /bin/bash -m",
-        "sudo echo ${each.value.username}:${each.value.password} | sudo chpasswd",
-        "sudo usermod -aG sudo ${each.value.username}",
-        "sudo service sshd restart",
-       	"sudo passwd -e ${each.value.username}",
-
-        # Populate the motd with data
-        "sudo sed -i 's/$HOSTNAME/${each.value.username}/g' /etc/motd",
-        "sudo sed -i 's/$IP/${self.ipv4_address}/g' /etc/motd",
-	
-        # Reboot to allow MOTD to change. This is a hack.
-        "sudo shutdown -r +60"
-        ]
-    }
+  }
 }
 
-resource "dnsimple_record" "a-records" {
-    for_each = digitalocean_droplet.decal_vms
-    domain = "xcf.sh"
-    name   = "${regex("(.+\\.decal)", "${each.value.name}")[0]}"
-    value  = "${each.value.ipv4_address}"
-    type   = "A"
+resource "libvirt_pool" "decalvm_pool" {
+  name = "decalvm"
+  type = "dir"
+  path = "/mnt/decalfs"
 }
 
+# We fetch the latest ubuntu release image from their mirrors
+resource "libvirt_volume" "ubuntu_img" {
+  name   = "ubuntu-2204.img"
+  pool   = libvirt_pool.decalvm_pool.name
+  source = "https://cloud-images.ubuntu.com/releases/jammy/release/ubuntu-22.04-server-cloudimg-amd64-disk-kvm.img"
+  format = "qcow2"
+}
+
+
+resource "libvirt_cloudinit_disk" "decalvm_init" {
+  for_each = { for student in local.data : student.username => student }
+
+  name           = "decalvm-init-${each.value.username}.iso"
+  user_data      = templatefile(local.cloud_init, { student = each.value, ip = local.decalvm_ip[each.value.username].v6 })
+  network_config = <<-EOT
+  version: 2
+  ethernets:
+    ens3:
+      addresses: [${local.decalvm_ip[each.value.username].v6}/64]
+      gateway6: 2607:f140:8801::1
+      nameservers:
+        search: [ocf.berkeley.edu]
+        addresses: [2607:f140:8801::1:52]
+  EOT
+  pool           = libvirt_pool.decalvm_pool.name
+}
+
+resource "libvirt_volume" "decalvm_volume" {
+  for_each = { for student in local.data : student.username => student }
+
+  name             = "decalvm-${each.value.username}.img"
+  size             = 32212254720 # 30 GB in bytes
+  pool             = libvirt_pool.decalvm_pool.name
+  base_volume_id   = libvirt_volume.ubuntu_img.id
+  base_volume_pool = libvirt_volume.ubuntu_img.pool
+}
+
+# Create the machine
+resource "libvirt_domain" "decalvm" {
+  for_each = { for student in local.data : student.username => student }
+
+  name   = "decalvm-${each.value.username}"
+  memory = "3072"
+  vcpu   = 2
+
+  cpu {
+    mode = "host-passthrough"
+  }
+
+  cloudinit = libvirt_cloudinit_disk.decalvm_init[each.value.username].id
+
+  network_interface {
+    bridge = "br0"
+  }
+
+  # IMPORTANT: this is a known bug on cloud images, since they expect a console
+  # we need to pass it
+  # https://bugs.launchpad.net/cloud-images/+bug/1573095
+  console {
+    type        = "pty"
+    target_port = "0"
+    target_type = "serial"
+  }
+
+  console {
+    type        = "pty"
+    target_port = "1"
+    target_type = "virtio"
+  }
+
+  disk {
+    volume_id = libvirt_volume.decalvm_volume[each.value.username].id
+  }
+}
+
+resource "dnsimple_zone_record" "decalvm_aaaarecord" {
+  for_each = { for student in local.data : student.username => student }
+
+  name      = "${each.value.username}.decal"
+  type      = "AAAA"
+  value     = local.decalvm_ip[each.value.username].v6
+  zone_name = "xcf.sh"
+}

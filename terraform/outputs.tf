@@ -1,3 +1,3 @@
-output "vms" {
-  value = "${digitalocean_droplet.decal_vms.*}"
-}
+# output "vms" {
+#   value = "${libvirt_domain.decalvm.*}"
+# }

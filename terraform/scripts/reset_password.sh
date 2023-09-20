@@ -1,10 +1,11 @@
 #!/bin/bash
 set -euo pipefail
 
-user=$(grep $1 -r sp21vm.csv | head -1 | cut -d',' -f3)
-newpw=$(grep $1 -r sp21vm.csv | head -1 | cut -d',' -f4)
-echo "Confirm new credentials $user:$newpw"
-sleep 2
-{ echo passwd $user; sleep 3; echo $newpw; sleep 1; echo $newpw; echo passwd -e $user; echo exit; } | ssh -i ../decal_rsa -tt root@$user.decal.xcf.sh
-
-
+if [ "$#" = 1 ]; then
+  username=$1
+  dir=$(dirname "$0")
+  read -p "New password for $username: " newpw
+  { echo passwd $username; sleep 3; echo $newpw; sleep 1; echo $newpw; echo passwd -e $username; echo exit; } | ssh -i "$dir/../../data/decal_root" -o "StrictHostKeyChecking=no" "root@$username.decal.xcf.sh"
+else
+	echo "Usage: $0 <ocfusername>"
+fi
