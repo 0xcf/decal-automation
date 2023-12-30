@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 # coding=utf-8
-import sys, csv
+import csv
+from os import path
 from textwrap import dedent
 from ocflib.misc.mail import send_mail
 
@@ -47,7 +48,7 @@ def mass_send(filename):
 
         print("Processed {lc} lines".format(lc=lc))
 
-filename = './data/students.csv'
+filename = path.join(path.dirname(__file__), 'data', 'students.csv')
 
 print("Reading from file {filename}".format(filename=filename))
 mass_send(filename)

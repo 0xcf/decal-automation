@@ -4,6 +4,5 @@ data_file = "../data/students.csv"
 # libvirt connection uri
 # libvirt_uri = "qemu+ssh://root@implosion.ocf.berkeley.edu/system?keyfile=$HOME/.ssh/id_ed25519&sshauth=privkey&no_verify=1"
 
-# DNSimple Credentials
-dnsimple_token   = "dnsimple token"
-dnsimple_account = "disimple account id"
+# DNS key secret to update recrods
+dns_key_secret = "bind dns key secret (can be found in lightning:/opt/puppet/shares/private/private.yaml under decal::ddns::key)"

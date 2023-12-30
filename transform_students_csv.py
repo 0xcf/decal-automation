@@ -1,7 +1,9 @@
 # take csv from google forms and turn it into one that can be accepted by terraform with all the parameters
 
-infile = './data/students.in.csv'
-outfile = './data/students.csv'
+from os import path
+
+infile = path.join(path.dirname(__file__), 'data', 'students.in.csv')
+outfile = path.join(path.dirname(__file__), 'data', 'students.csv')
 
 import csv, secrets, string, subprocess
 
