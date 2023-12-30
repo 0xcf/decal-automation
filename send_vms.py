@@ -11,7 +11,7 @@ def send(email, username, hostname, password):
 
         Your student virtual machine for the Linux SysAdmin Decal is ready. You will need this machine to complete some of your labs. Please note the following login information:
 
-        Host: {username}.decal.xcf.sh
+        Host: {hostname}
         Username: {username}
         Temporary Password: {password}
 
@@ -42,7 +42,7 @@ def mass_send(filename):
         csv_reader = csv.DictReader(csv_file)
         lc = 0
         for row in csv_reader:
-            send(row["email"], row["username"], row["username"] + '.decal.xcf.sh', row["password"])
+            send(row["email"], row["username"], f'{row["username"]}.decal.ocf.io', row["password"])
             lc += 1
 
         print("Processed {lc} lines".format(lc=lc))

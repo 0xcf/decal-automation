@@ -95,11 +95,10 @@ resource "libvirt_domain" "decalvm" {
   }
 }
 
-resource "dnsimple_zone_record" "decalvm_aaaarecord" {
+resource "dns_aaaa_record_set" "decalvm_aaaarecord" {
   for_each = { for student in local.data : student.username => student }
 
-  name      = "${each.value.username}.decal"
-  type      = "AAAA"
-  value     = local.decalvm_ip[each.value.username].v6
-  zone_name = "xcf.sh"
+  name      = each.value.username
+  addresses = [local.decalvm_ip[each.value.username].v6]
+  zone      = var.dns_zone
 }
