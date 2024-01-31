@@ -18,6 +18,11 @@ resource "libvirt_pool" "decalvm_pool" {
   name = "decalvm"
   type = "dir"
   path = "/mnt/decalfs"
+
+  lifecycle {
+    // make sure to not destroy pool, otherwise all VMs will lose their data
+    prevent_destroy = true
+  }
 }
 
 # We fetch the latest ubuntu release image from their mirrors
@@ -26,6 +31,11 @@ resource "libvirt_volume" "ubuntu_img" {
   pool   = libvirt_pool.decalvm_pool.name
   source = "https://cloud-images.ubuntu.com/releases/jammy/release/ubuntu-22.04-server-cloudimg-amd64-disk-kvm.img"
   format = "qcow2"
+
+  lifecycle {
+    // mostly prevented because it's a pain to download it again, but not too important
+    prevent_destroy = true
+  }
 }
 
 
@@ -36,7 +46,7 @@ resource "libvirt_cloudinit_disk" "decalvm_init" {
   user_data = templatefile(local.cloud_init, {
     student = each.value,
     ip      = local.decalvm_ip[each.value.username].v6,
-    fqdn    = "${each.value.username}.decal.ocfhosted.com"
+    fqdn    = "${each.value.username}.${trimsuffix(var.dns_zone, ".")}"
   })
   network_config = <<-EOT
   version: 2
