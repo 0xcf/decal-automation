@@ -26,7 +26,7 @@ variable "dns_server" {
 variable "dns_zone" {
   description = "DNS zone name (fully-qualified)"
   type        = string
-  default     = "decal.ocf.io."
+  default     = "decal.ocfhosted.com."
 }
 variable "dns_key_secret" {
   description = "Update key for DNS zone"

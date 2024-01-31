@@ -32,8 +32,12 @@ resource "libvirt_volume" "ubuntu_img" {
 resource "libvirt_cloudinit_disk" "decalvm_init" {
   for_each = { for student in local.data : student.username => student }
 
-  name           = "decalvm-init-${each.value.username}.iso"
-  user_data      = templatefile(local.cloud_init, { student = each.value, ip = local.decalvm_ip[each.value.username].v6 })
+  name = "decalvm-init-${each.value.username}.iso"
+  user_data = templatefile(local.cloud_init, {
+    student = each.value,
+    ip      = local.decalvm_ip[each.value.username].v6,
+    fqdn    = "${each.value.username}.decal.ocfhosted.com"
+  })
   network_config = <<-EOT
   version: 2
   ethernets:
